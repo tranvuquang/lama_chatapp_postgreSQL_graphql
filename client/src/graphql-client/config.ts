@@ -33,21 +33,49 @@ export const graphqlClient = (accessToken: string | null = "") => {
   return client;
 };
 
+export const queryClient = async (
+  accessToken: string = "",
+  dispatch: Dispatch<AnyAction>,
+  query: DocumentNode,
+  variables: any = {}
+) => {
+  dispatch(setLoadingRedux(true));
+  try {
+    const resData = await graphqlClient(accessToken).query({
+      query,
+      variables,
+    });
+    return resData;
+  } catch (error: any) {
+    console.log(error.message);
+  } finally {
+    dispatch(setLoadingRedux(false));
+  }
+};
+
 export const mutationClient = async (
   accessToken: string = "",
   dispatch: Dispatch<AnyAction>,
   mutation: DocumentNode,
   variables: any,
-  query: any = null
+  query: any = null,
+  value: any = {}
 ) => {
   dispatch(setLoadingRedux(true));
   try {
+    let reFetchData = {};
     const resData = (await graphqlClient(accessToken).mutate({
       mutation,
       variables,
-      refetchQueries: [{ query }],
     })) as ApolloClient<NormalizedCacheObject>;
-    return {resData};
+    if (resData && query && value) {
+      let reFetchData = await graphqlClient(accessToken).query({
+        query,
+        variables: value,
+      });
+      return { resData, reFetchData };
+    }
+    return { resData, reFetchData };
   } catch (error: any) {
     console.log(error.message);
   } finally {

@@ -10,6 +10,25 @@ const loginMutation = gql`
   }
 `;
 
-export {
-  loginMutation,
-};
+const createMessageMutation = gql`
+  mutation createMessageMutation(
+    $conversationId: String!
+    $sender: String!
+    $text: String!
+  ) {
+    createMessage(
+      conversationId: $conversationId
+      sender: $sender
+      text: $text
+    ) {
+      id
+      conversationId
+      sender
+      text
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export { loginMutation, createMessageMutation };
