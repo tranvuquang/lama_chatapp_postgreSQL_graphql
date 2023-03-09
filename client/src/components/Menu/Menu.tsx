@@ -2,8 +2,13 @@ import React from "react";
 import { NavLink } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 // import { logout } from "../../axios/axiosConfig";
-import { selectAuth, setAccessTokenRedux, setUserRedux } from "../../features/auth/authSlice";
+import {
+  selectAuth,
+  setAccessTokenRedux,
+  setUserRedux,
+} from "../../features/auth/authSlice";
 import { userDefaultData } from "../../features/auth/types";
+import { socket } from "../../pages/messenger/MessengerHomePage";
 
 const navLinkStyle = ({ isActive }: { isActive: boolean }) => ({
   color: isActive ? "#0d6efd" : "inherit",
@@ -17,7 +22,8 @@ const Menu = (props: Props) => {
   const dispatch = useAppDispatch();
   const logout = () => {
     dispatch(setAccessTokenRedux(""));
-    dispatch(setUserRedux(userDefaultData))
+    dispatch(setUserRedux(userDefaultData));
+    socket.disconnect();
   };
   return (
     <div>

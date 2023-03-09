@@ -15,7 +15,7 @@ import "../css/messenger.css";
 import socketIOClient from "socket.io-client";
 import { socketURL } from "../../constants";
 
-const socket = socketIOClient(socketURL);
+export const socket = socketIOClient(socketURL);
 
 type Props = {};
 
@@ -27,6 +27,7 @@ const MessengerHomePage = (props: Props) => {
   const [newMessage, setNewMessage] = useState("");
   const [messages, setMessages] = useState<IMessage[]>([]);
   const [arrivalMessage, setArrivalMessage] = useState<any>(null);
+  const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
 
   const scrollRef = useRef();
 
@@ -109,19 +110,15 @@ const MessengerHomePage = (props: Props) => {
       socket.off("getMessageFromSocket");
     };
   }, []);
+  // socket logic end
 
   // add user khi da ket noi va get user ve client
   useEffect(() => {
     socket.emit("addUserFromClient", user.id);
     socket.on("getUsersFromSocket", (users) => {
-      // setOnlineUsers(
-      //   user.followings.filter((f) =>
-      //     users.some((u: { userId: string }) => u.userId === f)
-      //   )
-      // );
+      setOnlineUsers(users);
     });
   }, [user]);
-  // socket logic end
 
   // gui tin nhan
   const handleSubmit = async (evt: React.SyntheticEvent) => {
@@ -173,13 +170,17 @@ const MessengerHomePage = (props: Props) => {
                 const receiverUser = conv.users.filter((user2: any) => {
                   return user2.id !== user.id;
                 });
+                const online = onlineUsers.find((user) => {
+                  return user.userId === receiverUser[0].id;
+                });
                 return (
                   <div
                     onClick={() => setCurrentChat(conv as IConversation)}
                     key={index}
                     style={{ cursor: "pointer" }}
                   >
-                    {receiverUser[0].email.split("@")[0]}
+                    {receiverUser[0].email.split("@")[0]}{" "}
+                    {online ? "- online" : ""}
                   </div>
                 );
               })}
