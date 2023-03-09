@@ -1,38 +1,96 @@
-import { useQuery } from "@apollo/client";
-import React, { useEffect, useState } from "react";
-import { useAppSelector /* , useAppDispatch */ } from "../../app/hooks";
+import React, { useEffect, useRef, useState } from "react";
+import { useAppSelector, useAppDispatch } from "../../app/hooks";
 import { selectAuth } from "../../features/auth/authSlice";
+import Message from "../../features/messenger/components/Message/Message";
 import Topbar from "../../features/messenger/components/Topbar/Topbar";
 import { IConversation, IMessage } from "../../features/messenger/types";
-import { getConversationsByUserIdQuery } from "../../graphql-client/queries";
+import { mutationClient, queryClient } from "../../graphql-client/config";
+import { createMessageMutation } from "../../graphql-client/mutations";
+import {
+  getConversationsByUserIdQuery,
+  getMessagesByConversationIdQuery,
+} from "../../graphql-client/queries";
 import "../css/messenger.css";
 
 type Props = {};
 
 const MessengerHomePage = (props: Props) => {
-  const { user /* accessToken */ } = useAppSelector(selectAuth);
-  // const dispatch = useAppDispatch();
+  const { user, accessToken } = useAppSelector(selectAuth);
+  const dispatch = useAppDispatch();
   const [conversations, setConversations] = useState<IConversation[]>([]);
   const [currentChat, setCurrentChat] = useState<IConversation | null>(null);
   const [newMessage, setNewMessage] = useState("");
-  const [messages /* setMessages */] = useState<IMessage[]>([]);
+  const [messages, setMessages] = useState<IMessage[]>([]);
   // const [arrivalMessage, setArrivalMessage] = useState<any>(null);
 
-  const conversationsData = useQuery(getConversationsByUserIdQuery, {
-    variables: {
-      id: user.id,
-    },
-  });
+  const scrollRef = useRef();
 
   useEffect(() => {
-    if (conversationsData.data) {
-      setConversations(conversationsData.data.getConversationsByUserId);
+    if (user) {
+      (async () => {
+        const { data } = (await queryClient(
+          accessToken,
+          dispatch,
+          getConversationsByUserIdQuery,
+          {
+            id: user.id,
+          }
+        )) as any;
+        if (data) {
+          setConversations(data.getConversationsByUserId);
+        }
+      })();
     }
-  }, [conversationsData.data]);
+  }, [accessToken, dispatch, user]);
+
+  useEffect(() => {
+    if (currentChat) {
+      (async () => {
+        const { data } = (await queryClient(
+          accessToken,
+          dispatch,
+          getMessagesByConversationIdQuery,
+          {
+            id: currentChat.id,
+          }
+        )) as any;
+        if (data) {
+          setMessages(data.getMessagesByConversationId);
+        }
+      })();
+    }
+  }, [accessToken, currentChat, dispatch]);
 
   const handleSubmit = async (evt: React.SyntheticEvent) => {
     evt.preventDefault();
+    if (newMessage) {
+      const message = {
+        sender: user.id,
+        text: newMessage,
+        conversationId: currentChat?.id,
+      };
+      // const receiverId = currentChat?.members.find(
+      //   (member: string) => member !== user.id
+      // );
+      const { resData, reFetchData } = (await mutationClient(
+        accessToken,
+        dispatch,
+        createMessageMutation,
+        message,
+        getMessagesByConversationIdQuery,
+        { id: currentChat?.id }
+      )) as any;
+      if (resData && reFetchData) {
+        setMessages(reFetchData.data.getMessagesByConversationId);
+        setNewMessage("");
+      }
+    }
   };
+
+  useEffect(() => {
+    const current = scrollRef.current as any;
+    current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   return (
     <>
@@ -68,8 +126,8 @@ const MessengerHomePage = (props: Props) => {
                     messages.length > 0 &&
                     messages.map((m, index) => {
                       return (
-                        <div key={index} /* ref={scrollRef as any} */>
-                          {/* <Message message={m} own={m.sender === user.id} /> */}
+                        <div key={index} ref={scrollRef as any}>
+                          <Message message={m} own={m.sender === user.id} />
                         </div>
                       );
                     })}

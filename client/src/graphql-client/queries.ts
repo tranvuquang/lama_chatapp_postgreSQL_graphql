@@ -1,32 +1,5 @@
 import { gql } from "@apollo/client";
 
-const getPostsQuery = gql`
-  query getPostsQuery {
-    getPosts {
-      id
-      body
-      createdAt
-      username
-      userId
-      comments {
-        id
-        postId
-        userId
-        username
-        body
-        createdAt
-      }
-      likes {
-        id
-        postId
-        userId
-        username
-        createdAt
-      }
-    }
-  }
-`;
-
 const getConversationsByUserIdQuery = gql`
   query getConversationsByUserIdQuery($id: String!) {
     getConversationsByUserId(id: $id) {
@@ -45,4 +18,17 @@ const getConversationsByUserIdQuery = gql`
   }
 `;
 
-export { getPostsQuery, getConversationsByUserIdQuery };
+const getMessagesByConversationIdQuery = gql`
+  query getMessagesByConversationIdQuery($id: String!) {
+    getMessagesByConversationId(id: $id) {
+      conversationId
+      createdAt
+      id
+      sender
+      text
+      updatedAt
+    }
+  }
+`;
+
+export { getMessagesByConversationIdQuery, getConversationsByUserIdQuery };
