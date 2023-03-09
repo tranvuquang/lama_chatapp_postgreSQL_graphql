@@ -11,6 +11,7 @@ import {
 } from "../features/auth/authSlice";
 import { IUser } from "../features/auth/types";
 import { mutationClient } from "../graphql-client/config";
+import { socket } from "./messenger/MessengerHomePage";
 
 const formDataDefaultValue = {
   email: "admin@gmail.com",
@@ -44,6 +45,7 @@ const LoginPage = (props: Props) => {
       const { email, id, accessToken } = resData.data.login;
       dispatch(setAccessTokenRedux(accessToken as string));
       dispatch(setUserRedux({ email, id } as IUser));
+      socket.connect()
     }
   };
   return (
