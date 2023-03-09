@@ -27,31 +27,22 @@ const getPostsQuery = gql`
   }
 `;
 
-const getPostQuery = gql`
-  query getPostQuery ($postId: ID!) {
-    getPost (postId: $postId) {
-      id
-      body
+const getConversationsByUserIdQuery = gql`
+  query getConversationsByUserIdQuery($id: String!) {
+    getConversationsByUserId(id: $id) {
       createdAt
-      username
-      userId
-      comments {
-        id
-        postId
-        userId
-        username
-        body
+      id
+      members
+      updatedAt
+      users {
+        accessToken
         createdAt
-      }
-      likes {
+        email
         id
-        postId
-        userId
-        username
-        createdAt
+        updatedAt
       }
     }
   }
 `;
 
-export { getPostsQuery, getPostQuery };
+export { getPostsQuery, getConversationsByUserIdQuery };
