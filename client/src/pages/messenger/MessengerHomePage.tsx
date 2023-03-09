@@ -12,6 +12,11 @@ import {
 } from "../../graphql-client/queries";
 import "../css/messenger.css";
 
+import socketIOClient from "socket.io-client";
+import { socketURL } from "../../constants";
+
+const socket = socketIOClient(socketURL);
+
 type Props = {};
 
 const MessengerHomePage = (props: Props) => {
@@ -21,10 +26,11 @@ const MessengerHomePage = (props: Props) => {
   const [currentChat, setCurrentChat] = useState<IConversation | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [messages, setMessages] = useState<IMessage[]>([]);
-  // const [arrivalMessage, setArrivalMessage] = useState<any>(null);
+  const [arrivalMessage, setArrivalMessage] = useState<any>(null);
 
   const scrollRef = useRef();
 
+  // lay thong tin cuoc hoi thoai cua user dang dang nhap
   useEffect(() => {
     if (user) {
       (async () => {
@@ -43,6 +49,7 @@ const MessengerHomePage = (props: Props) => {
     }
   }, [accessToken, dispatch, user]);
 
+  // lay cac tin nhan khi mo cuoc hoi thoai
   useEffect(() => {
     if (currentChat) {
       (async () => {
@@ -61,6 +68,62 @@ const MessengerHomePage = (props: Props) => {
     }
   }, [accessToken, currentChat, dispatch]);
 
+  // save message vao dung dia chi cua nguoi nhan
+  useEffect(() => {
+    if (arrivalMessage) {
+      // neu tin nhan den dung voi cua so chat. chi thay doi khi co tin nhan moi den
+      if (currentChat?.members.includes(arrivalMessage.sender)) {
+        setMessages((prev) => [...prev, arrivalMessage] as any);
+      }
+      // neu chua mo cua so chat
+      if (!currentChat) {
+        console.log("!currentChat");
+      }
+      // da mo cua so chat nhung tin nhan den ko phai cua cua so chat
+      if (
+        currentChat &&
+        !currentChat?.members.includes(arrivalMessage.sender)
+      ) {
+        console.log("currentChat");
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [arrivalMessage]);
+
+  // socket logic start very important ==========================
+  // ket noi socket va disconnect
+  useEffect(() => {
+    socket.on("connect", () => {});
+    socket.on("disconnect", () => {});
+
+    socket.on("getMessageFromSocket", (data) => {
+      setArrivalMessage({
+        sender: data.senderId,
+        text: data.text,
+        createdAt: Date.now(),
+      });
+    });
+    return () => {
+      socket.off("connect");
+      socket.off("disconnect");
+      socket.off("getMessageFromSocket");
+    };
+  }, []);
+
+  // add user khi da ket noi va get user ve client
+  useEffect(() => {
+    socket.emit("addUserFromClient", user.id);
+    socket.on("getUsersFromSocket", (users) => {
+      // setOnlineUsers(
+      //   user.followings.filter((f) =>
+      //     users.some((u: { userId: string }) => u.userId === f)
+      //   )
+      // );
+    });
+  }, [user]);
+  // socket logic end
+
+  // gui tin nhan
   const handleSubmit = async (evt: React.SyntheticEvent) => {
     evt.preventDefault();
     if (newMessage) {
@@ -69,9 +132,14 @@ const MessengerHomePage = (props: Props) => {
         text: newMessage,
         conversationId: currentChat?.id,
       };
-      // const receiverId = currentChat?.members.find(
-      //   (member: string) => member !== user.id
-      // );
+      const receiverId = currentChat?.members.find(
+        (member: string) => member !== user.id
+      );
+      socket.emit("sendMessageFromClient", {
+        senderId: user.id,
+        receiverId,
+        text: newMessage,
+      });
       const { resData, reFetchData } = (await mutationClient(
         accessToken,
         dispatch,
